@@ -182,7 +182,5 @@ $(document).ready(function() {
     });
     $("#about").click(setupLink("about"));
     $("#links").click(setupLink("links"));
-    $("#home").click(setupLink("home"));
-
     changerUpdated();
 });

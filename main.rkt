@@ -6,7 +6,9 @@
           web-server/http
           racket/sandbox
           (planet dherman/json:4:=0)
-          racket/runtime-path)
+          racket/runtime-path
+          web-server/managers/lru
+          web-server/managers/manager)
 
 (define APPLICATION/JSON-MIME-TYPE #"application/json;charset=utf-8")
 
@@ -30,7 +32,6 @@
   (define res (ev str))
   (define out (get-output ev))
   (define err (get-error-output ev))
-  ;(kill-evaluator ev) TODO are they garbage collected ?
   (list (if (void? res) "" (format "~v" res))
         (and (not (equal? out "")) out)
         (and (not (equal? err "")) err)))
@@ -52,12 +53,13 @@
 ;; Responses
 ;;------------------------------------------------------------------
 ;; make-response : ... string -> response
-(define (make-response #:code [code 200]
-                       #:message [message #"OK"]
-                       #:seconds [seconds (current-seconds)]
-                       #:mime-type [mime-type TEXT/HTML-MIME-TYPE] 
-                       #:headers [headers (list (make-header #"Cache-Control" #"no-cache"))]
-                       content)
+(define (make-response 
+         #:code [code 200]
+         #:message [message #"OK"]
+         #:seconds [seconds (current-seconds)]
+         #:mime-type [mime-type TEXT/HTML-MIME-TYPE] 
+         #:headers [headers (list (make-header #"Cache-Control" #"no-cache"))]
+         content)
   (response/full code message seconds mime-type headers 
                  (list (string->bytes/utf-8 content))))
           
@@ -81,7 +83,7 @@
      ("page10" (include-template "templates/tutorial/page10.html"))
      ("page11" (include-template "templates/tutorial/page11.html"))
      ("end" (include-template "templates/tutorial/end.html")))))
-
+    
 ;; Links page
 (define (links request)
     (make-response
@@ -103,19 +105,13 @@
                (include-template "templates/home.html"))))
             (define (next-eval request)
               (eval-with ev request))]
-    (parameterize
-    ([current-servlet-continuation-expiration-handler
-      (lambda (req)
-        (make-response 
-         #:mime-type APPLICATION/JSON-MIME-TYPE
-         (jsexpr->json 
-          (json-error "" "Your session has expired. Please reload the page."))))])
-      (send/suspend/dispatch response-generator))))
+      (send/suspend/dispatch response-generator)))
 
-;; Eval 
+;; string string -> jsexpr
 (define (json-error expr msg)
   (hasheq "expr" expr "error" true "message" msg))
 
+;; string string -> jsexpr
 (define (json-result expr res)
   (hasheq "expr" expr "result" res))
 
@@ -127,7 +123,8 @@
      ((list res out #f) 
       (json-result expr (string-append out res)))
      ((list res out err)
-      (define err1 (car (regexp-split "\n+" err))) ;; TODO how to preserve the complete error message ?
+      ;; keep only the first line of the error
+      (define err1 (car (regexp-split "\n+" err))) 
       (json-error expr err1))))
 
 
@@ -147,6 +144,7 @@
    (eval-to-json "(begin (display \"6 + \") \"6\")") "\"6 + \\\"6\\\"\"")
 )  
 
+;; Eval handler
 (define (eval-with ev request) 
   (define bindings (request-bindings request))
   (if (exists-binding? 'expr bindings)
@@ -160,6 +158,20 @@
 ;;------------------------------------------------------------------
 ;; Server
 ;;------------------------------------------------------------------
+(define (ajax? req)
+  (string=? (dict-ref (request-headers req) 'x-requested-with "")
+            "XMLHttpRequest"))
+
+(define (expiration-handler req)
+  (if (ajax? req)
+      (make-response 
+       #:mime-type APPLICATION/JSON-MIME-TYPE
+       (jsexpr->json 
+        (json-error "" "Your session has expired. Please reload the page.")))
+      (response/xexpr
+      `(html (head (title "Page Has Expired."))
+             (body (p "Sorry, this page has expired. Please go back."))))))
+
 
 (define-runtime-path static "./static")
 
@@ -173,4 +185,6 @@
  #:port 8000
  #:servlet-regexp #rx""
  #:extra-files-paths (list static)
- #:servlet-path "/")
+ #:servlet-path "/"
+ #:manager
+  (make-threshold-LRU-manager expiration-handler (* 128 1024 1024)))
