@@ -1,0 +1,13 @@
+<p>
+  Let's see what you just did: you evaluated a list where the first element is the function itself, defined on the spot - and the other elements are the arguments that you pass to the function.
+  That's exactly the same syntax that you used earlier on to call functions like <code>square</code> or even <code>+</code>.
+  The only difference is that now you defined the function in the same place where you called it.
+</p>
+
+<p>
+  Now I can tell you a secret: <code>(define (my-fun x) ...)</code> is actually just a bit of syntactic sugar for <code>(define my-fun (lambda (x) ...)</code>
+</p>
+
+<p>
+   Try typing <code class="expr">(define square (lambda (x) (* x x)))</code>.
+</p>
