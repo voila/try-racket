@@ -30,19 +30,19 @@ var pageExitConditions = [
         verify: function(data) { return data.expr == "(+ 1 2 3 4 5 6)"; }
     },
     {
-        verify: function (data) { return data.expr == "(defn square [x] (* x x))"; }
+        verify: function (data) { return data.expr == "(define (square x) (* x x))"; }
     },
     {
         verify: function (data) { return data.expr == "(square 10)"; }
     },
     {
-        verify: function (data) { return data.expr == "((fn [x] (* x x)) 10)"; }
+        verify: function (data) { return data.expr == "((lambda (x) (* x x)) 10)"; }
     },
     {
-        verify: function (data) { return data.expr == "(def square (fn [x] (* x x)))"; }
+        verify: function (data) { return data.expr == "(define square (lambda (x) (* x x)))"; }
     },
     {
-        verify: function (data) { return data.expr == "(map inc [1 2 3 4])"; }
+        verify: function (data) { return data.expr == "(map add1 '(1 2 3 4))"; }
     },
     {
         verify: function (data) { return false; }

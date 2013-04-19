@@ -124,8 +124,8 @@
       (json-result expr (string-append out res)))
      ((list res out err)
       ;; keep only the first line of the error
-      (define err1 (car (regexp-split "\n+" err))) 
-      (json-error expr err1))))
+      (define err2 (apply string-append (take (regexp-split "\n+" err) 2)))
+      (json-error expr err2))))
 
 
 (module+ test
