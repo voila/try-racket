@@ -151,7 +151,12 @@ function onHandle(line, report) {
     
     
     // display expr results
-    return [{msg: data.result, className: "jquery-console-message-value"}];
+    if(/#\"data:image\/png;base64,/.test(data.result)){
+        $('.jquery-console-inner').append('<img src="' + data.result.substring(2) + " />");
+        return [{msg: "", className: "jquery-console-message-value"}];
+    }
+    else
+        return [{msg: data.result, className: "jquery-console-message-value"}];
 }
 
 /**

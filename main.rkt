@@ -18,23 +18,56 @@
 ;; sandbox
 ;;------------------------------------------------------------------
 ;; make-ev : -> evaluator
+
 (define (make-ev)
-    (parameterize ([sandbox-output 'string]
-                   [sandbox-error-output 'string]
-                   [sandbox-propagate-exceptions #f]
-                   [sandbox-eval-limits (list 10 50)]
-                   [sandbox-path-permissions '([exists "/"])])
-      (call-with-limits #f #f
-                        (lambda () (make-evaluator 'racket/init)))))
+  (parameterize ([sandbox-output 'string]
+                 [sandbox-error-output 'string]
+                 [sandbox-propagate-exceptions #f]
+                 [sandbox-eval-limits (list 10 50)]
+                 [sandbox-path-permissions '((exists #rx#"")
+                                             (read #rx#""))])
+    (call-with-trusted-sandbox-configuration
+     (lambda () (make-evaluator 'slideshow
+                       #:requires '(file/convertible
+                                    net/base64))))))
+
+
+
+;; wrap-convert : string -> sexp
+;; TODO: this breaks (define ...) :
+;;   define not allowed in an expression context
+(define (wrap-convert str)
+  (parameterize ([current-input-port (open-input-string str)])
+    `(let ([e ,(read)])
+       (if (convertible? e)
+           (bytes-append #"data:image/png;base64,"
+                         (base64-encode (convert e 'png-bytes) #""))
+           e))))
 
 ;; run-code : evaluator string -> eval-result
 (define (run-code ev str)
-  (define res (ev str))
+  (define res (ev (wrap-convert str)))
   (define out (get-output ev))
   (define err (get-error-output ev))
   (list (if (void? res) "" (format "~v" res))
         (and (not (equal? out "")) out)
         (and (not (equal? err "")) err)))
+
+;; extended-msg : string -> string
+;; exception message upto fields part
+;(define (extended-msg err)
+;  (let ([lines (regexp-split "\n+" err)]
+;        [not-field? (lambda (str) (regexp-match? #rx"^ ?" str))])
+;    (apply string-append (take-while lines not-field?))))
+;
+;(define (take-while lst pred)
+;  (define (find-pos lst pos pred)
+;    (cond [(null? lst) pos]
+;          [(pred (first lst)) pos]
+;          [else (find-pos (rest lst) (add1 pos) pred)]))
+;  (let ([not-pred (lambda (x) (not (pred x)))])
+;    (take lst (find-pos lst 0 not-pred))))
+
 
 
 
@@ -122,26 +155,32 @@
       (json-result expr res))
      ((list res out #f) 
       (json-result expr (string-append out res)))
-     ((list res out err)
+     ((list _ _ err)
       ;; keep only the first line of the error
-      (define err1 (car (regexp-split "\n+" err))) 
-      (json-error expr err1))))
+      ;(define err1 (car (regexp-split "\n+" err))) 
+      (json-error expr err))))
 
 
 (module+ test
   (define ev (make-ev))
-  (define (eval-to-json expr)
+  (define (eval-result-to-json expr)
     (jsexpr->json 
     (hash-ref (result-json "" (run-code ev expr)) "result")))
-  
+  (define (eval-error-to-json expr)
+    (jsexpr->json 
+    (hash-ref (result-json "" (run-code ev expr)) "message")))
+    
   (check-equal? 
-   (eval-to-json "(+ 3 3)") "\"6\"")
+   (eval-result-to-json "(+ 3 3)") "\"6\"")
   (check-equal? 
-   (eval-to-json "(display \"6\")") "\"6\"")
+   (eval-result-to-json "(display \"6\")") "\"6\"")
   (check-equal? 
-   (eval-to-json "(write \"6\")") "\"\\\"6\\\"\"")
+   (eval-result-to-json "(write \"6\")") "\"\\\"6\\\"\"")
   (check-equal? 
-   (eval-to-json "(begin (display \"6 + \") \"6\")") "\"6 + \\\"6\\\"\"")
+   (eval-result-to-json "(begin (display \"6 + \") \"6\")") "\"6 + \\\"6\\\"\"")
+  (check-equal? 
+   (eval-result-to-json "(circle 10)")
+"\"#\\\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAb0lEQVQYlY3QKw7CYBRE4a8VNTWsBTToOvDsreuo42FJWARrwA/migbR/Dc5ZnLE3JEEOlyx4FMslXVJKHHGCxN2xVTZXI4LbhiSWIMBd5zhieO/tJJPeMAX44Y4Ir3G6/HGfsM5VL3GZ5rnaR38ByEpbN3Dxf15AAAAAElFTkSuQmCC\\\"\"")
 )  
 
 ;; Eval handler
@@ -175,16 +214,19 @@
 
 (define-runtime-path static "./static")
 
-(serve/servlet
- dispatch
- #:stateless? #f       
- #:launch-browser? #f
- #:connection-close? #t
- #:quit? #f 
- #:listen-ip #f 
- #:port 8000
- #:servlet-regexp #rx""
- #:extra-files-paths (list static)
- #:servlet-path "/"
- #:manager
-  (make-threshold-LRU-manager expiration-handler (* 128 1024 1024)))
+(define (go)
+  (serve/servlet
+   dispatch
+   #:stateless? #f       
+   #:launch-browser? #f
+   #:connection-close? #t
+   #:quit? #f 
+   #:listen-ip #f 
+   #:port 8000
+   #:servlet-regexp #rx""
+   #:extra-files-paths (list static)
+   #:servlet-path "/"
+   #:manager
+   (make-threshold-LRU-manager expiration-handler (* 128 1024 1024))))
+
+(go)
