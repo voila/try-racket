@@ -8,7 +8,8 @@
           (planet dherman/json:4:=0)
           racket/runtime-path
           web-server/managers/lru
-          web-server/managers/manager)
+          web-server/managers/manager
+          file/convertible)
 
 (define APPLICATION/JSON-MIME-TYPE #"application/json;charset=utf-8")
 
@@ -36,22 +37,34 @@
 ;; wrap-convert : string -> sexp
 ;; TODO: this breaks (define ...) :
 ;;   define not allowed in an expression context
-(define (wrap-convert str)
-  (parameterize ([current-input-port (open-input-string str)])
-    `(let ([e ,(read)])
-       (if (convertible? e)
-           (bytes-append #"data:image/png;base64,"
-                         (base64-encode (convert e 'png-bytes) #""))
-           e))))
+;(define (wrap-convert str)
+;  (parameterize ([current-input-port (open-input-string str)])
+;    `(let ([e ,(read)])
+;       (if (convertible? e)
+;           (bytes-append #"data:image/png;base64,"
+;                         (base64-encode (convert e 'png-bytes) #""))
+;           e))))
 
 ;; run-code : evaluator string -> eval-result
+;(define (run-code ev str)
+;  (define res (ev (wrap-convert str)))
+;  (define out (get-output ev))
+;  (define err (get-error-output ev))
+;  (list (if (void? res) "" (format "~v" res))
+;        (and (not (equal? out "")) out)
+;        (and (not (equal? err "")) err)))
+
 (define (run-code ev str)
-  (define res (ev (wrap-convert str)))
+  (define res (ev str))
   (define out (get-output ev))
-  (define err (get-error-output ev))
-  (list (if (void? res) "" (format "~v" res))
+  (define err (get-error-output ev))  
+  (if (convertible? res)
+      (run-code ev `(bytes-append #"data:image/png;base64,"
+                         (base64-encode (convert ,res 'png-bytes) #"")))
+      (list (if (void? res) "" (format "~v" res))
         (and (not (equal? out "")) out)
-        (and (not (equal? err "")) err)))
+        (and (not (equal? err "")) err))))
+
 
 ;; extended-msg : string -> string
 ;; exception message upto fields part
@@ -179,9 +192,9 @@
    (eval-result-to-json "(write \"6\")") "\"\\\"6\\\"\"")
   (check-equal? 
    (eval-result-to-json "(begin (display \"6 + \") \"6\")") "\"6 + \\\"6\\\"\"")
-  (check-equal? 
-   (eval-result-to-json "(circle 10)")
-"\"#\\\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAb0lEQVQYlY3QKw7CYBRE4a8VNTWsBTToOvDsreuo42FJWARrwA/migbR/Dc5ZnLE3JEEOlyx4FMslXVJKHHGCxN2xVTZXI4LbhiSWIMBd5zhieO/tJJPeMAX44Y4Ir3G6/HGfsM5VL3GZ5rnaR38ByEpbN3Dxf15AAAAAElFTkSuQmCC\\\"\"")
+;  (check-equal? 
+;   (eval-result-to-json "(circle 10)")
+;"\"#\\\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAb0lEQVQYlY3QKw7CYBRE4a8VNTWsBTToOvDsreuo42FJWARrwA/migbR/Dc5ZnLE3JEEOlyx4FMslXVJKHHGCxN2xVTZXI4LbhiSWIMBd5zhieO/tJJPeMAX44Y4Ir3G6/HGfsM5VL3GZ5rnaR38ByEpbN3Dxf15AAAAAElFTkSuQmCC\\\"\"")
 )  
 
 ;; Eval handler
@@ -207,27 +220,25 @@
       (make-response 
        #:mime-type APPLICATION/JSON-MIME-TYPE
        (jsexpr->json 
-        (json-error "" "Your session has expired. Please reload the page.")))
+        (json-error "" "Sorry, your session has expired. Please reload the page.")))
       (response/xexpr
       `(html (head (title "Page Has Expired."))
-             (body (p "Sorry, this page has expired. Please go back."))))))
+             (body (p "Sorry, this page has expired. Please reload the page."))))))
 
 
 (define-runtime-path static "./static")
 
-(define (go)
-  (serve/servlet
-   dispatch
-   #:stateless? #f       
-   #:launch-browser? #f
-   #:connection-close? #t
-   #:quit? #f 
-   #:listen-ip #f 
-   #:port 8000
-   #:servlet-regexp #rx""
-   #:extra-files-paths (list static)
-   #:servlet-path "/"
-   #:manager
-   (make-threshold-LRU-manager expiration-handler (* 128 1024 1024))))
 
-(go)
+(serve/servlet
+ dispatch
+ #:stateless? #f       
+ #:launch-browser? #f
+ #:connection-close? #t
+ #:quit? #f 
+ #:listen-ip #f 
+ #:port 8000
+ #:servlet-regexp #rx""
+ #:extra-files-paths (list static)
+ #:servlet-path "/"
+ #:manager
+ (make-threshold-LRU-manager expiration-handler (* 128 1024 1024)))
