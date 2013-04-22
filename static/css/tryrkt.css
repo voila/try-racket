@@ -44,6 +44,7 @@ body {
  margin: 10px 10px;
  overflow:auto; 
  text-align:left;
+ line-height: 1.2em;
 }
 #console div.jquery-console-message-value {
   color:#0066FF; 
