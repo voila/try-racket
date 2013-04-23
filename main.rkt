@@ -29,7 +29,10 @@
                                              (read #rx#""))])
     (call-with-trusted-sandbox-configuration
      (lambda () (make-evaluator 'slideshow
-                       #:requires '(file/convertible
+                       #:requires '(slideshow/flash
+                                    slideshow/code
+                                    (planet schematics/random:1:0/random)
+                                    file/convertible
                                     net/base64))))))
 
 
@@ -228,6 +231,16 @@
 
 (define-runtime-path static "./static")
 
+(define mgr
+  (make-threshold-LRU-manager expiration-handler (* 256 1024 1024)))
+;  (create-LRU-manager expiration-handler 5 60
+;   (lambda ()
+;     (define memory-use (current-memory-use))
+;     (define collect? 
+;       (or (>= memory-use (* 256 1024 1024)) (< memory-use 0)))
+;     collect?)
+;   #:initial-count 15
+;   #:inform-p (lambda args (void))))
 
 (serve/servlet
  dispatch
@@ -240,5 +253,4 @@
  #:servlet-regexp #rx""
  #:extra-files-paths (list static)
  #:servlet-path "/"
- #:manager
- (make-threshold-LRU-manager expiration-handler (* 128 1024 1024)))
+ #:manager mgr)
