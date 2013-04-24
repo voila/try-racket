@@ -11,6 +11,10 @@
           web-server/managers/manager
           file/convertible)
 
+;; Requiring this here ensures that `make-ev` does not try
+;; to instantiate it multiple times
+(require racket/gui/base)
+
 (define APPLICATION/JSON-MIME-TYPE #"application/json;charset=utf-8")
 
 (module+ test (require rackunit))
