@@ -1,48 +1,44 @@
 var currentPage = -1;
 var pages = [
-			"page1",
-			"page2",
-			"page3",
-			"page4",
-			"page5",
-			"page6",
-			"page7",
-			"page8",
-			"page9",
-			"page10",
-			"page11",
-			"end"
+			"intro",
+			"go",
+			"definitions",
+			"binding",
+			"functions",
+			"scope",
+			"lists",
+			"modules",
+			"macros",
+			//"objects",
+			"where"
 		];
 var pageExitConditions = [
     {
         verify: function(data) { return false; }
     },
     {
-        verify: function(data) { return data.expr == "(+ 3 3)"; }
+        verify: function(data) { return false; }
     },
     {
-        verify: function(data) { return data.expr == "(/ 10 3)"; }
+        verify: function(data) { return data.expr == "(square 10)"; }
     },
     {
-        verify: function(data) { return data.expr == "(/ 10 3.0)"; }
+        verify: function(data) { return data.expr == "(checkerboard (square 10))"; }
     },
     {
-        verify: function(data) { return data.expr == "(+ 1 2 3 4 5 6)"; }
+        verify: function(data) { return false; }
     },
     {
-        verify: function (data) { return data.expr == "(define (square x) (* x x))"; }
+        verify: function (data) { return false; }
     },
     {
-        verify: function (data) { return data.expr == "(square 10)"; }
+        verify: function (data) { return false; }
     },
     {
-        verify: function (data) { return data.expr == "((lambda (x) (* x x)) 10)"; }
+        verify: function (data) { return false;}
     },
     {
-        verify: function (data) { return data.expr == "(define square (lambda (x) (* x x)))"; }
-    },
-    {
-        verify: function (data) { return data.expr == "(map add1 '(1 2 3 4))"; }
+        verify: function (data) { return false; }
     },
     {
         verify: function (data) { return false; }
@@ -177,7 +173,7 @@ function changerUpdated() {
 var controller;
 $(document).ready(function() {
     controller = $("#console").console({
-        welcomeMessage:'Give me some Racket',
+        welcomeMessage:'Make some Racket!',
         promptLabel: '> ',
         commandValidate: onValidate,
         commandHandle: onHandle,

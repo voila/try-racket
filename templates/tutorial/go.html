@@ -1,0 +1,29 @@
+<h2>Go!</h2>
+
+<p>When you type an expression after the > in the REPL and hit Enter, the expression is evaluated and its result is printed. An expression can be just a value, such as the number 5 or the string "art gallery":</p>
+
+<p>
+  Try typing <code class="expr" class="expr">5</code> or <code class="expr">"art gallery"</code> in the REPL.
+</p>
+
+
+<p>An expression can also be a function call. To call a function, put an open parenthesis before the function name, then expressions for the function arguments, and then a close parenthesis, like this:</p>
+
+<p><code class="expr">(circle 10)</code></p>
+
+<p>A result from the circle function is a picture value, which prints as an expression result in much the same way that numbers or strings print. The argument to circle determines the circle’s size in pixels. As you might guess, there’s a rectangle function that takes two arguments instead of one:</p>
+
+<p><code class="expr">(rectangle 10 20)</code></p>
+
+<p>Try giving circle the wrong number of arguments, just to see what happens:</p>
+
+<p><code class="expr">(circle 10 20)</code></p>
+
+
+<p>In addition to basic picture constructors like circle and rectangle, there’s a hc-append function that combines pictures. When you start composing function calls in Racket, it looks like this:</p>
+
+<p><code class="expr">(hc-append (circle 10) (rectangle 10 20))</code></p>
+
+<p>The hyphen in the name hc-append is just a part of the identifier; it’s not hc minus append. The function name starts with h because it combines pictures horizontally, and the next letter is c because the pictures are centered vertically.</p>
+
+<p>Type <code class="expr">next</code></p>

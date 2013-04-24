@@ -1,0 +1,39 @@
+<h2>Modules</h2>
+
+<!--the module initially imports everything from the module designated by slideshow, which exports picture-making functions as well as more commonly used functions such as list and map. -->
+
+<p>To import additional libraries, use the require form. For example, the library slideshow/flash provides a filled-flash function:</p>
+
+<p><code class="expr">(require slideshow/flash)</code></p>
+ 
+<p><code class="expr">(filled-flash 40 30)</code></p>
+
+<p>Modules are named and distributed in various ways:</p>
+
+<p>Some modules are packaged in the Racket distribution or otherwise installed into a hierarchy of collections. For example, the module name slideshow/flash means “the module implemented in the file "flash.rkt" that is located in the "slideshow" collection.” When a module name includes no slash, then it refers to a "main.rkt" file.</p>
+
+<p>Some modules are distributed through the PLaneT server, and they can be downloaded automatically on demand. For example, the first time that you evaluate the following fragment:</p>
+
+<p><code class="expr">(require (planet schematics/random:1:0/random))</code></p>
+ 
+<p><code class="expr">(random-gaussian)</code></p>
+
+<p>DrRacket automatically downloads version 1.0 of the "random.plt" library by "schematics" and then imports the "random.rkt" module.</p>
+
+<!--
+Some modules live relative to other modules, without necessarily belonging to any particular collection or package. For example, in DrRacket, if you save your definitions so far in a file "quick.rkt" and add the line
+
+<code class="expr">(provide rainbow square)</code>
+
+then you can open a new tab or window in DrRacket, type the new program "use.rkt" in the same directory as "quick.rkt":
+
+#lang racket
+(require "quick.rkt")
+(rainbow (square 5))
+and when you run "use.rkt", a rainbow list of squares is the output. Note that "use.rkt" is written using the initial import racket, which does not supply any picture-making functions itself—but does provide require and the function-calling syntax.
+-->
+
+
+<p>Racketeers typically write new programs and libraries as modules that import each other through relative paths, and that use existing libraries from collections and planet. When a program or library developed this way seems useful to others, it can be uploaded as a PLaneT package or distributed in the more old-fashioned way as an installable collection archive (in either case without modifying the internal relative references among modules).</p>
+
+<p>Type <code class="expr">next</code></p>

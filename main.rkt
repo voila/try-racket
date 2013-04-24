@@ -29,9 +29,9 @@
                                              (read #rx#""))])
     (call-with-trusted-sandbox-configuration
      (lambda () (make-evaluator 'slideshow
-                       #:requires '(slideshow/flash
-                                    slideshow/code
-                                    (planet schematics/random:1:0/random)
+                       #:requires '(;slideshow/flash
+                                    ;slideshow/code
+                                    ;(planet schematics/random:1:0/random)
                                     file/convertible
                                     net/base64))))))
 
@@ -120,18 +120,17 @@
   (define page (dict-ref (request-bindings request) 'page #f))
   (make-response
    (match page
-     ("page1" (include-template "templates/tutorial/page1.html"))
-     ("page2" (include-template "templates/tutorial/page2.html"))
-     ("page3" (include-template "templates/tutorial/page3.html"))
-     ("page4" (include-template "templates/tutorial/page4.html"))
-     ("page5" (include-template "templates/tutorial/page5.html"))
-     ("page6" (include-template "templates/tutorial/page6.html"))
-     ("page7" (include-template "templates/tutorial/page7.html"))
-     ("page8" (include-template "templates/tutorial/page8.html"))
-     ("page9" (include-template "templates/tutorial/page9.html"))
-     ("page10" (include-template "templates/tutorial/page10.html"))
-     ("page11" (include-template "templates/tutorial/page11.html"))
-     ("end" (include-template "templates/tutorial/end.html")))))
+     ("intro" (include-template "templates/tutorial/intro.html"))
+     ("go" (include-template "templates/tutorial/go.html"))
+     ("definitions" (include-template "templates/tutorial/definitions.html"))
+     ("binding" (include-template "templates/tutorial/binding.html"))
+     ("functions" (include-template "templates/tutorial/functions.html"))
+     ("scope" (include-template "templates/tutorial/scope.html"))
+     ("lists" (include-template "templates/tutorial/lists.html"))
+     ("modules" (include-template "templates/tutorial/modules.html"))
+     ("macros" (include-template "templates/tutorial/macros.html"))
+     ;("objects" (include-template "templates/tutorial/objects.html"))
+     ("where" (include-template "templates/tutorial/where.html")))))
     
 ;; Links page
 (define (links request)

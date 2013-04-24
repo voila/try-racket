@@ -1,0 +1,35 @@
+
+
+<code class="expr">(lambda (x) (* x x))</code>
+
+<h2>Objects</h2>
+
+<p>An object system is another example of a sophisticated language extension that is worth learning and using for Racket users. Objects are sometimes better than functions, even when you have lambda, and objects work especially well for graphical user interfaces. The API for Racket’s GUI and graphics system is expressed in terms of objects and classes.</p>
+
+<p>The class system itself is implemented by the racket/class library, and the racket/gui/base library provides the GUI and drawing classes. By convention, the classes are given names that end with %:</p>
+
+(require racket/class)
+(define f (new frame% [label "My Art"]
+                      [width 300]
+                      [height 300]
+                      [alignment '(center center)]))
+
+(send f show #t)
+
+<p>The new form creates an instance of a class, where initialization arguments like label and width are provided by name. The send form calls a method of the object, such as show, with arguments after the method name; the argument #t in this case is the boolean constant “true.”</p>
+
+<p>Pictures generated with slideshow encapsulate a function that uses the graphics toolbox’s drawing commands to render the picture to a drawing context, such as a canvas in a frame. The make-pict-drawer function from slideshow exposes a picture’s drawing function. We can use make-pict-drawer in a canvas-painting callback to draw a picture into a canvas:</p>
+
+(define (add-drawing p)
+  (let ([drawer (make-pict-drawer p)])
+    (new canvas% [parent f]
+                 [style '(border)]
+                 [paint-callback (lambda (self dc)
+                                   (drawer dc 0 0))])))
+ 
+(add-drawing (pict+code (circle 10)))
+
+
+(add-drawing (colorize (filled-flash 50 30) "yellow"))
+
+

@@ -1,0 +1,31 @@
+<h2>Lexical Scope</h2>
+
+<p>Racket is a lexically scoped language, which means that whenever an identifier is used as an expression, something in the textual environment of the expression determines the identifier’s binding. This rule applies to identifiers in a lambda body as well as anywhere else.</p>
+
+<p>In the following rgb-series function, the uses of mk in each lambda form refer to the argument of rgb-series, since that’s the binding that is textually in scope:</p>
+
+<p><code class="expr">(define (rgb-series mk)
+  (vc-append
+   (series (lambda (sz) (colorize (mk sz) "red")))
+   (series (lambda (sz) (colorize (mk sz) "green")))
+   (series (lambda (sz) (colorize (mk sz) "blue")))))</code></p>
+ 
+<p><code class="expr">(rgb-series circle)</code></p>
+
+<p><code class="expr">(rgb-series square)</code></p>
+
+<p>Here’s another example, where rgb-maker takes a function and returns a new one that remembers and uses the original function.</p>
+
+<p><code class="expr">(define (rgb-maker mk)
+  (lambda (sz)
+    (vc-append (colorize (mk sz) "red")
+               (colorize (mk sz) "green")
+               (colorize (mk sz) "blue"))))</code></p>
+ 
+<p><code class="expr">(series (rgb-maker circle))</code></p>
+
+<p><code class="expr">(series (rgb-maker square))</code></p>
+
+<p>Note how composing functions via rgb-maker creates a different alignment of objects within the picture compared to using rgb-series.</p>
+
+<p>Type <code class="expr">next</code></p>

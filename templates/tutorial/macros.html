@@ -1,0 +1,28 @@
+<h2>Macros</h2>
+
+<p>Here’s another library to try:</p>
+
+<p><code class="expr">(require slideshow/code)</code></p>
+ 
+<p><code class="expr">(code (circle 10))</code></p>
+
+<p>Instead of a circle, the result is a picture of the code that, if it were used as an expression, would produce a circle. In other words, code is not a function, but instead a new syntactic form for creating pictures; the bit between the opening parenthesis with code is not an expression, but instead manipulated by the code syntactic form.</p>
+
+<p><!-- This helps explain what we meant in the previous section when we said that racket provides require and the function-calling syntax. -->Libraries are not restricted to exporting values, such as functions; they can also define new syntactic forms. In this sense, Racket isn’t exactly a language at all; it’s more of an idea for how to structure a language so that you can extend it or create entirely new languages.</p>
+
+<p>One way to introduce a new syntactic form is through define-syntax with syntax-rules:</p>
+
+<p><code class="expr">(define-syntax pict+code
+  (syntax-rules ()
+    [(pict+code expr)
+     (hc-append 10
+                expr
+                (code expr))]))</code></p>
+ 
+<p><code class="expr">(pict+code (circle 10))</code></p>
+
+<p>This kind of definition is a macro. The (pict+code expr) part is a pattern for uses of the macro; instances of the pattern in a program are replaced by instances of the corresponding template, which is (hc-append 10 expr (code expr)). In particular, (pict+code (circle 10)) matches the pattern with (circle 10) as expr, so it is replaced with (hc-append 10 (circle 10) (code (circle 10))).</p>
+
+<p>Of course, this sort of syntactic extension cuts both ways: inventing a new language can make it easier to say what you want, but harder for others to understand.</p>
+
+<p>Type <code class="expr">next</code></p>

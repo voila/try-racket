@@ -1,0 +1,32 @@
+<h2>Functions are Values</h2>
+
+<p>Instead of calling circle as a function, try evaluating just circle as an expression:</p>
+
+<code class="expr">circle</code>
+
+<p>The identifier circle is bound to a function (a.k.a. “procedure”), just like c is bound to a circle. Unlike a circle picture, there’s not a simple way of completely printing the function, so Racket just prints #<procedure:circle>.</p>
+
+<p>This example shows that functions are values, just like numbers and pictures (even if they don’t print as nicely). Since functions are values, you can define functions that expect other functions as arguments:</p>
+
+<p><code class="expr">(define (series mk)
+  (hc-append 4 (mk 5) (mk 10) (mk 20)))</code></p>
+
+<p><code class="expr">(series circle)</code></p>
+
+<p><code class="expr">(series square)</code></p>
+
+<p>When calling a function that accepts a function argument, the argument function often isn’t needed anywhere else. Having to write down the function via define would be a hassle, because you have to make up a name and find a place to put the function definition. The alternative is to use lambda, which creates an anonymous function:</p>
+
+<p><code class="expr">(series (lambda (size) (checkerboard (square size))))</code></p>
+
+<p>The parenthesized names after a lambda are the arguments to the function, and the expression after the argument names is the function body. Using the word “lambda” instead of “function” or “procedure” is part of Racket’s history and culture.</p>
+
+<p>A define form for a function is really a shorthand for a simple define using lambda as the value. For example, the series definition could be written as:</p>
+
+<p><code class="expr">(define series
+  (lambda (mk)
+    (hc-append 4 (mk 5) (mk 10) (mk 20))))</code></p>
+
+<p>Most Racketeers prefer to use the shorthand function form with define instead of expanding to lambda.</p>
+
+<p>Type <code class="expr">next</code></p>

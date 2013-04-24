@@ -1,0 +1,30 @@
+<h2>Definitions</h2>
+
+<p>To use a particular circle and rectangle picture many times, it’s simpler to give them names. Let's add two definitions:</p>
+
+<p>
+<code class="expr">(define c (circle 10))
+(define r (rectangle 10 20))
+</code>
+</p>
+
+<p>Then click Enter again. Now, you can just type c or r:</p>
+
+<p><code class="expr">r</code></p>
+
+<p><code class="expr">(hc-append c r)</code></p>
+
+<p><code class="expr">(hc-append 20 c r c)</code></p>
+
+<p>As you can see, the hc-append function accepts an optional number argument before the picture arguments, and it accepts any number of picture arguments. When a number is provided, it specifies the amount of space to add between pictures.</p>
+
+<p>Let’s add a function definition to the program. A function definition uses define, just like our shape definitions, but with an open parenthesis before the function name, and names for the function arguments before the matching close parenthesis:</p>
+
+<p><code class="expr">(define (square n)
+  ; A semi-colon starts a line comment.
+  ; The expression below is the function body.
+  (filled-rectangle n n))</code></p>
+
+<p>The syntax of the definition mirrors the syntax of a function call:</p>
+
+<p><code class="expr">(square 10)</code></p>
