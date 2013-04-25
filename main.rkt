@@ -33,9 +33,9 @@
                                              (read #rx#""))])
     (call-with-trusted-sandbox-configuration
      (lambda () (make-evaluator 'slideshow
-                       #:requires '(;slideshow/flash
-                                    ;slideshow/code
-                                    ;(planet schematics/random:1:0/random)
+                       #:requires '(slideshow/flash
+                                    slideshow/code
+                                    (planet schematics/random:1:0/random)
                                     file/convertible
                                     net/base64))))))
 
@@ -134,7 +134,8 @@
      ("modules" (include-template "templates/tutorial/modules.html"))
      ("macros" (include-template "templates/tutorial/macros.html"))
      ;("objects" (include-template "templates/tutorial/objects.html"))
-     ("where" (include-template "templates/tutorial/where.html")))))
+     ("where" (include-template "templates/tutorial/where.html"))
+     ("end" (include-template "templates/tutorial/end.html")))))
     
 ;; Links page
 (define (links request)

@@ -10,14 +10,15 @@ var pages = [
 			"modules",
 			"macros",
 			//"objects",
-			"where"
+			"where",
+      "end"
 		];
 var pageExitConditions = [
     {
         verify: function(data) { return false; }
     },
     {
-        verify: function(data) { return false; }
+        verify: function(data) { return data.expr == "(hc-append (circle 10) (rectangle 10 20))"; }
     },
     {
         verify: function(data) { return data.expr == "(square 10)"; }
@@ -36,6 +37,9 @@ var pageExitConditions = [
     },
     {
         verify: function (data) { return false;}
+    },
+    {
+        verify: function (data) { return false; }
     },
     {
         verify: function (data) { return false; }

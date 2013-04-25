@@ -31,6 +31,11 @@ body {
  display:inline;
 }
 
+#header h1 a {
+  text-decoration:none;
+  color:#fff;
+  outline:none;
+}
 
 #console {
   float:right;
@@ -67,6 +72,7 @@ body {
 #console div.jquery-console-message-error {
  color:#ef0505; font-family:monospace;
  padding:0.1em; 
+ white-space: pre;
 }
 #console div.jquery-console-message-success {
  color:#187718; font-family:monospace;
@@ -125,7 +131,8 @@ width:440px;
   padding: 0.1em 0.25em 0.2em 0.25em;
 }
 
-div#tuttext {
+#changer code.expr { 
+
 }
 
 div.continue {
