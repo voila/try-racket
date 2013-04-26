@@ -10,57 +10,57 @@
           web-server/managers/lru
           web-server/managers/manager
           file/convertible
-          racket/gui/base ; ensures that `make-ev` does not tryto instantiate it multiple times
+          racket/gui/base ; ensures that `make-ev` does not try to instantiate it multiple times
+          "autocomplete.rkt"
           )
-
 
 (define APPLICATION/JSON-MIME-TYPE #"application/json;charset=utf-8")
 
 (module+ test (require rackunit))
+
+
+;; Paths
+(define autocomplete 
+  (build-path (current-directory) "autocomplete.rkt"))
 
 ;;------------------------------------------------------------------
 ;; sandbox
 ;;------------------------------------------------------------------
 ;; make-ev : -> evaluator
 
+
 (define (make-ev)
   (parameterize ([sandbox-output 'string]
                  [sandbox-error-output 'string]
                  [sandbox-propagate-exceptions #f]
                  [sandbox-eval-limits (list 10 50)]
-                 ;[sandbox-path-permissions '((exists #rx#"")
-                 ;                            (read #rx#""))]
-                 [sandbox-path-permissions '((read #rx#"racket-prefs.rktd"))]
-                 )
-    ;(call-with-trusted-sandbox-configuration
-     ((lambda () (make-evaluator 'racket/base
-                       #:requires '(slideshow/pict
+                 [sandbox-path-permissions '((read #rx#"racket-prefs.rktd"))])
+    ((lambda () 
+       (make-evaluator 'racket/base
+                       #:requires `(slideshow/pict
                                     slideshow/flash
                                     slideshow/code
-                                    ;(except-in racket/file)
+                                    ,autocomplete
                                     (planet schematics/random:1:0/random)
+                                    (planet dherman/json:4:=0)
                                     file/convertible
-                                    net/base64)
-                       )))))
+                                    net/base64))))))
 
 
-(define (preprocess ev str)
-  (match str
-    ("" (run-code ev str))
-    ((regexp #rx"^\t")
-  ;(cond [(char=? (string-ref str 0) #\tab) ;; autocompletion 
-         (list 
-          (jsexpr->json
-           (list*  ; to complete
-                  (namespace-completion str)))  ; completions : bstr list
-          "" ""))
-         
-     (_ (run-code ev str))))
+;(define (preprocess ev str)
+;  (run-code ev 
+;            (match str
+;              ((regexp #rx"^\t")
+;               ;(cond [(char=? (string-ref str 0) #\tab) ;; autocompletion 
+;                  `(namespace-completion (substring ,str 1)))  ; completions : bstr list
+;               (_ str))))
+;     ;(_ (run-code ev str)
+        
       
 
 
 (define (run-code ev str)
-  (define res (ev str))
+  (define res (ev str)) 
   (define out (get-output ev))
   (define err (get-error-output ev))  
   (if (convertible? res)
@@ -71,6 +71,13 @@
         (and (not (equal? out "")) out)
         (and (not (equal? err "")) err))))
 
+(define (complete-code ev str)
+  (define res (ev  `(jsexpr->json (namespace-completion ,str)))) 
+  (define out (get-output ev))
+  (define err (get-error-output ev))  
+  (list (if (void? res) "" res)
+        (and (not (equal? out "")) out)
+        (and (not (equal? err "")) err)))
 
 ;;------------------------------------------------------------------
 ;; Routes
@@ -118,6 +125,9 @@
      ("where" (include-template "templates/tutorial/where.html"))
      ("end" (include-template "templates/tutorial/end.html")))))
     
+
+
+
 ;; Links page
 (define (links request)
     (make-response
@@ -134,11 +144,15 @@
   
 (define (home-with ev request) 
   (local [(define (response-generator embed/url)
-            (let ([url (embed/url next-eval)])
+            (let ([url (embed/url next-eval)]
+                  ;[complete-url (embed/url next-complete)]
+                  )
               (make-response
                (include-template "templates/home.html"))))
             (define (next-eval request)
-              (eval-with ev request))]
+              (eval-with ev request))
+            ;(define (next-complete request)(complete-with ev request))
+            ]
       (send/suspend/dispatch response-generator)))
 
 ;; string string -> jsexpr
@@ -160,69 +174,41 @@
       (json-error expr err))))
 
 
-(module+ test
-  (define ev (make-ev))
-  (define (eval-result-to-json expr)
-    (jsexpr->json 
-    (hash-ref (result-json "" (run-code ev expr)) "result")))
-  (define (eval-error-to-json expr)
-    (jsexpr->json 
-    (hash-ref (result-json "" (run-code ev expr)) "message")))
-    
-  (check-equal? 
-   (eval-result-to-json "(+ 3 3)") "\"6\"")
-  (check-equal? 
-   (eval-result-to-json "(display \"6\")") "\"6\"")
-  (check-equal? 
-   (eval-result-to-json "(write \"6\")") "\"\\\"6\\\"\"")
-  (check-equal? 
-   (eval-result-to-json "(begin (display \"6 + \") \"6\")") "\"6 + \\\"6\\\"\"")
-)  
+;(module+ test
+;  (define ev (make-ev))
+;  (define (eval-result-to-json expr)
+;    (jsexpr->json 
+;    (hash-ref (result-json "" (run-code ev expr)) "result")))
+;  (define (eval-error-to-json expr)
+;    (jsexpr->json 
+;    (hash-ref (result-json "" (run-code ev expr)) "message")))
+;    
+;  (check-equal? 
+;   (eval-result-to-json "(+ 3 3)") "\"6\"")
+;  (check-equal? 
+;   (eval-result-to-json "(display \"6\")") "\"6\"")
+;  (check-equal? 
+;   (eval-result-to-json "(write \"6\")") "\"\\\"6\\\"\"")
+;  (check-equal? 
+;   (eval-result-to-json "(begin (display \"6 + \") \"6\")") "\"6 + \\\"6\\\"\"")
+;)  
 
 ;; Eval handler
 (define (eval-with ev request) 
   (define bindings (request-bindings request))
-  (if (exists-binding? 'expr bindings)
-      (let ([expr (extract-binding/single 'expr bindings)])
-        (make-response 
-         #:mime-type APPLICATION/JSON-MIME-TYPE
-         (jsexpr->json (result-json expr (run-code ev expr)))))
-         ;(jsexpr->json (result-json expr (preprocess ev expr)))))
-      (make-response #:code 400 #:message #"Bad Request" "")))
+  (cond [(exists-binding? 'expr bindings)
+         (let ([expr (extract-binding/single 'expr bindings)])
+           (make-response 
+            #:mime-type APPLICATION/JSON-MIME-TYPE
+            (jsexpr->json (result-json expr (run-code ev expr)))))]
+         [(exists-binding? 'complete bindings)
+          (let ([str (extract-binding/single 'complete bindings)])
+            (make-response 
+             #:mime-type APPLICATION/JSON-MIME-TYPE
+             (jsexpr->json 
+              (result-json "" (complete-code ev str)))))]
+        [else (make-response #:code 400 #:message #"Bad Request" "")]))
       
-
-
-;;------------------------------------------------------------------
-;; Auto-completion
-;;------------------------------------------------------------------
-
-;; efficiently convert symbols to byte strings
-(define symbol->bstring
-  (let ([t (make-weak-hash)])
-    (lambda (sym)
-      (or (hash-ref t sym #f)
-          (let ([bstr (string->bytes/utf-8 (symbol->string sym))])
-            (hash-set! t sym bstr)
-            bstr)))))
-
-;; get a list of byte strings for current bindings, cache last result
-(define get-namespace-bstrings
-  (let ([last-syms #f] [last-bstrs #f])
-    (lambda ()
-      (define syms (namespace-mapped-symbols))
-      (unless (equal? syms last-syms)
-        (set! last-syms syms)
-        (set! last-bstrs (sort (map symbol->bstring syms) bytes<?)))
-      last-bstrs)))
-
-(define (namespace-completion pat)
-  (let* ([pat (if (string? pat) (string->bytes/utf-8 pat) pat)]
-         [pat (regexp-quote pat)]
-         [pat (regexp-replace* #px#"(\\w)\\b" pat #"\\1\\\\w*")]
-         [pat (byte-pregexp (bytes-append #"^" pat))])
-    (map bytes->string/utf-8 (filter (lambda (bstr) 
-               (regexp-match pat bstr))
-            (get-namespace-bstrings)))))
 
 
 ;;------------------------------------------------------------------
@@ -268,3 +254,6 @@
  #:extra-files-paths (list static)
  #:servlet-path "/"
  #:manager mgr)
+
+
+

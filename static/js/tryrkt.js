@@ -83,7 +83,7 @@ function getStep(n, controller) {
 }
 
 
-function eval_clojure(code) {
+function eval_racket(code) {
     var data;
     $.ajax({
         url: evalUrl,
@@ -94,6 +94,16 @@ function eval_clojure(code) {
     return data;
 }
 
+function complete_racket(str){
+    var data;
+    $.ajax({
+        url: evalUrl,
+        data: { complete : str },
+        async: false,
+        success: function(res) { data = res; },
+    });
+    return data;
+}
 
 function doCommand(input) {
 		if (input.match(/^gopage /)) {
@@ -126,6 +136,19 @@ function onValidate(input) {
     return (input != "");
 }
 
+function onComplete(line) {
+    var input = $.trim(line);
+    var data = complete_racket(input);
+
+    // handle error
+    if (data.error) {
+        return data.message;
+    }
+    else
+        return JSON.parse(data.result);
+}
+    
+
 function onHandle(line, report) {
     var input = $.trim(line);
 
@@ -135,8 +158,9 @@ function onHandle(line, report) {
 			return;
 		}
     
+
     // perform evaluation
-    var data = eval_clojure(input);
+    var data = eval_racket(input);
 
     // handle error
     if (data.error) {
@@ -181,9 +205,11 @@ $(document).ready(function() {
         promptLabel: '> ',
         commandValidate: onValidate,
         commandHandle: onHandle,
+        completeHandle: onComplete,
         autofocus:true,
         animateScroll:true,
-        promptHistory:true
+        promptHistory:true,
+        cols:2
     });
     $("#about").click(setupLink("about"));
     $("#links").click(setupLink("links"));
