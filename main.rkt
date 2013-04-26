@@ -9,11 +9,10 @@
           racket/runtime-path
           web-server/managers/lru
           web-server/managers/manager
-          file/convertible)
+          file/convertible
+          racket/gui/base ; ensures that `make-ev` does not tryto instantiate it multiple times
+          )
 
-;; Requiring this here ensures that `make-ev` does not try
-;; to instantiate it multiple times
-(require racket/gui/base)
 
 (define APPLICATION/JSON-MIME-TYPE #"application/json;charset=utf-8")
 
@@ -29,66 +28,48 @@
                  [sandbox-error-output 'string]
                  [sandbox-propagate-exceptions #f]
                  [sandbox-eval-limits (list 10 50)]
-                 [sandbox-path-permissions '((exists #rx#"")
-                                             (read #rx#""))])
-    (call-with-trusted-sandbox-configuration
-     (lambda () (make-evaluator 'slideshow
-                       #:requires '(slideshow/flash
+                 ;[sandbox-path-permissions '((exists #rx#"")
+                 ;                            (read #rx#""))]
+                 [sandbox-path-permissions '((read #rx#"racket-prefs.rktd"))]
+                 )
+    ;(call-with-trusted-sandbox-configuration
+     ((lambda () (make-evaluator 'racket/base
+                       #:requires '(slideshow/pict
+                                    slideshow/flash
                                     slideshow/code
+                                    ;(except-in racket/file)
                                     (planet schematics/random:1:0/random)
                                     file/convertible
-                                    net/base64))))))
+                                    net/base64)
+                       )))))
 
 
+(define (preprocess ev str)
+  (match str
+    ("" (run-code ev str))
+    ((regexp #rx"^\t")
+  ;(cond [(char=? (string-ref str 0) #\tab) ;; autocompletion 
+         (list 
+          (jsexpr->json
+           (list*  ; to complete
+                  (namespace-completion str)))  ; completions : bstr list
+          "" ""))
+         
+     (_ (run-code ev str))))
+      
 
-;; wrap-convert : string -> sexp
-;; TODO: this breaks (define ...) :
-;;   define not allowed in an expression context
-;(define (wrap-convert str)
-;  (parameterize ([current-input-port (open-input-string str)])
-;    `(let ([e ,(read)])
-;       (if (convertible? e)
-;           (bytes-append #"data:image/png;base64,"
-;                         (base64-encode (convert e 'png-bytes) #""))
-;           e))))
-
-;; run-code : evaluator string -> eval-result
-;(define (run-code ev str)
-;  (define res (ev (wrap-convert str)))
-;  (define out (get-output ev))
-;  (define err (get-error-output ev))
-;  (list (if (void? res) "" (format "~v" res))
-;        (and (not (equal? out "")) out)
-;        (and (not (equal? err "")) err)))
 
 (define (run-code ev str)
   (define res (ev str))
   (define out (get-output ev))
   (define err (get-error-output ev))  
   (if (convertible? res)
+      ;; run 'convert' in the sandbox for safety reasons
       (run-code ev `(bytes-append #"data:image/png;base64,"
                          (base64-encode (convert ,res 'png-bytes) #"")))
       (list (if (void? res) "" (format "~v" res))
         (and (not (equal? out "")) out)
         (and (not (equal? err "")) err))))
-
-
-;; extended-msg : string -> string
-;; exception message upto fields part
-;(define (extended-msg err)
-;  (let ([lines (regexp-split "\n+" err)]
-;        [not-field? (lambda (str) (regexp-match? #rx"^ ?" str))])
-;    (apply string-append (take-while lines not-field?))))
-;
-;(define (take-while lst pred)
-;  (define (find-pos lst pos pred)
-;    (cond [(null? lst) pos]
-;          [(pred (first lst)) pos]
-;          [else (find-pos (rest lst) (add1 pos) pred)]))
-;  (let ([not-pred (lambda (x) (not (pred x)))])
-;    (take lst (find-pos lst 0 not-pred))))
-
-
 
 
 ;;------------------------------------------------------------------
@@ -176,10 +157,7 @@
      ((list res out #f) 
       (json-result expr (string-append out res)))
      ((list _ _ err)
-      ;; keep only the first line of the error
-      ;(define err1 (car (regexp-split "\n+" err))) 
       (json-error expr err))))
-
 
 
 (module+ test
@@ -199,9 +177,6 @@
    (eval-result-to-json "(write \"6\")") "\"\\\"6\\\"\"")
   (check-equal? 
    (eval-result-to-json "(begin (display \"6 + \") \"6\")") "\"6 + \\\"6\\\"\"")
-;  (check-equal? 
-;   (eval-result-to-json "(circle 10)")
-;"\"#\\\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAb0lEQVQYlY3QKw7CYBRE4a8VNTWsBTToOvDsreuo42FJWARrwA/migbR/Dc5ZnLE3JEEOlyx4FMslXVJKHHGCxN2xVTZXI4LbhiSWIMBd5zhieO/tJJPeMAX44Y4Ir3G6/HGfsM5VL3GZ5rnaR38ByEpbN3Dxf15AAAAAElFTkSuQmCC\\\"\"")
 )  
 
 ;; Eval handler
@@ -211,9 +186,44 @@
       (let ([expr (extract-binding/single 'expr bindings)])
         (make-response 
          #:mime-type APPLICATION/JSON-MIME-TYPE
-         (jsexpr->json (result-json expr (run-code ev expr)))))
+         ;(jsexpr->json (result-json expr (run-code ev expr)))))
+         (jsexpr->json (result-json expr (preprocess ev expr)))))
       (make-response #:code 400 #:message #"Bad Request" "")))
       
+
+
+;;------------------------------------------------------------------
+;; Auto-completion
+;;------------------------------------------------------------------
+
+;; efficiently convert symbols to byte strings
+(define symbol->bstring
+  (let ([t (make-weak-hash)])
+    (lambda (sym)
+      (or (hash-ref t sym #f)
+          (let ([bstr (string->bytes/utf-8 (symbol->string sym))])
+            (hash-set! t sym bstr)
+            bstr)))))
+
+;; get a list of byte strings for current bindings, cache last result
+(define get-namespace-bstrings
+  (let ([last-syms #f] [last-bstrs #f])
+    (lambda ()
+      (define syms (namespace-mapped-symbols))
+      (unless (equal? syms last-syms)
+        (set! last-syms syms)
+        (set! last-bstrs (sort (map symbol->bstring syms) bytes<?)))
+      last-bstrs)))
+
+(define (namespace-completion pat)
+  (let* ([pat (if (string? pat) (string->bytes/utf-8 pat) pat)]
+         [pat (regexp-quote pat)]
+         [pat (regexp-replace* #px#"(\\w)\\b" pat #"\\1\\\\w*")]
+         [pat (byte-pregexp (bytes-append #"^" pat))])
+    (map bytes->string/utf-8 (filter (lambda (bstr) 
+               (regexp-match pat bstr))
+            (get-namespace-bstrings)))))
+
 
 ;;------------------------------------------------------------------
 ;; Server
