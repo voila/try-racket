@@ -107,6 +107,7 @@
         var promptLabel = config && config.promptLabel? config.promptLabel : "> ";
         var continuedPromptLabel = config && config.continuedPromptLabel?
             config.continuedPromptLabel : "> ";
+        var promptIndent = "               ".substring(15-promptLabel.length); // a string of <promptLabel.length> spaces
         var column = 0;
         var promptText = '';
         var restoreText = '';
@@ -248,7 +249,8 @@
             // this timeout is required because the onpaste event is
             // fired *before* the text is actually pasted
             setTimeout(function() {
-                typer.consoleInsert(typer.val());
+                
+                typer.consoleInsert(typer.val().replace(/\n/g, '\n' + promptIndent));
                 typer.val("");
             }, 0);
         });
@@ -266,15 +268,15 @@
 		            cancelExecution();
 		            return false;
 	          }
-            /*
+            
             // Shit-Enter: soft return
             if(e.shiftKey && keyCode == 13) {
 		            cancelKeyPress = keyCode;
 		            cancelExecution();
-                //
+                
 		            return false;
-	          }
-            */
+	          
+            }
 	          if (acceptInput) {
 		            if (keyCode in keyCodes) {
                     cancelKeyPress = keyCode;
