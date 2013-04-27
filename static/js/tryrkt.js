@@ -142,7 +142,8 @@ function onComplete(line) {
 
     // handle error
     if (data.error) {
-        return data.message;
+        controller.commandResult(data.message, "jquery-console-message-error");
+        return [];
     }
     else
         return JSON.parse(data.result);
@@ -177,6 +178,7 @@ function onHandle(line, report) {
     // display expr results
     if(/#\"data:image\/png;base64,/.test(data.result)){
         $('.jquery-console-inner').append('<img src="' + data.result.substring(2) + " />");
+        controller.scrollToBottom();
         return [{msg: "", className: "jquery-console-message-value"}];
     }
     else
@@ -194,6 +196,10 @@ function changerUpdated() {
         $(this).click(function(e) {
             controller.promptText($(this).text());
             controller.inner.click();
+            // trigger Enter
+            var e = jQuery.Event("keydown");
+            e.keyCode = 13; 
+            controller.typer.trigger(e);
         });
     });
 }
