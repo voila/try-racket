@@ -249,8 +249,7 @@
             // this timeout is required because the onpaste event is
             // fired *before* the text is actually pasted
             setTimeout(function() {
-                
-                typer.consoleInsert(typer.val().replace(/\n/g, '\n' + promptIndent));
+                typer.consoleInsert(indentNextLines(typer.val()));
                 typer.val("");
             }, 0);
         });
@@ -636,9 +635,12 @@
         };
 
 	      function doNothing() {};
-
+        
+        // extra spaces to line-up subsequent lines with the 'prompt-line'
+        function indentNextLines(text){ return text.replace(/\n/g, '\n' + promptIndent) };
         extern.promptText = function(text){
             if (text) {
+                text = indentNextLines(text);
                 promptText = text;
                 column = promptText.length;
                 updatePromptDisplay();

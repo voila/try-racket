@@ -152,14 +152,11 @@ function onComplete(line) {
 
 function onHandle(line, report) {
     var input = $.trim(line);
-
     // handle commands
     if (doCommand(input)) {
 			report();
 			return;
 		}
-    
-
     // perform evaluation
     var data = eval_racket(input);
 
@@ -169,7 +166,6 @@ function onHandle(line, report) {
     }
     
     // handle page
-     
     if (currentPage >= 0 && pageExitConditions[currentPage].verify(data)) {
   			goToPage(currentPage + 1);
     }
@@ -215,7 +211,7 @@ $(document).ready(function() {
         autofocus:true,
         animateScroll:true,
         promptHistory:true,
-        cols:2
+        cols:1
     });
     $("#about").click(setupLink("about"));
     $("#links").click(setupLink("links"));
