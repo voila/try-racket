@@ -10,7 +10,7 @@
           web-server/managers/lru
           web-server/managers/manager
           file/convertible
-          racket/gui/base ; ensures that `make-ev` does not try to instantiate it multiple times
+;          racket/gui/base ; ensures that `make-ev` does not try to instantiate it multiple times
           "autocomplete.rkt"
           )
 
@@ -37,9 +37,9 @@
                  [sandbox-path-permissions '((read #rx#"racket-prefs.rktd"))])
     ((lambda () 
        (make-evaluator 'racket/base
-                       #:requires `(slideshow/pict
-                                    slideshow/flash
-                                    slideshow/code
+                       #:requires `(pict
+                                    pict/flash
+                                    pict/code
                                     ,autocomplete
                                     (planet schematics/random:1:0/random)
                                     (planet dherman/json:4:=0)
