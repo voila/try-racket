@@ -51,13 +51,13 @@
   (define res (ev str)) 
   (define out (get-output ev))
   (define err (get-error-output ev))  
-  (if (convertible? res)
-      ;; run 'convert' in the sandbox for safety reasons
-      (run-code ev `(bytes-append #"data:image/png;base64,"
-                         (base64-encode (convert ,res 'png-bytes) #"")))
-      (list (if (void? res) "" (format "~v" res))
-        (and (not (equal? out "")) out)
-        (and (not (equal? err "")) err))))
+  (cond [(ev `(convertible? ,res))
+         ;; run 'convert' in the sandbox for safety reasons
+         (run-code ev `(bytes-append #"data:image/png;base64,"
+                         (base64-encode (convert ,res 'png-bytes) #"")))]
+        [else      (list (if (void? res) "" (format "~v" res))
+                         (and (not (equal? out "")) out)
+                         (and (not (equal? err "")) err))]))
 
 (define (complete-code ev str)
   (define res (ev  `(jsexpr->json (namespace-completion ,str)))) 
