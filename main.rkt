@@ -10,7 +10,7 @@
           web-server/managers/lru
           web-server/managers/manager
           file/convertible
-          racket/gui/base ; ensures that `make-ev` does not try to instantiate it multiple times
+;          racket/gui/base ; ensures that `make-ev` does not try to instantiate it multiple times
           "autocomplete.rkt"
           )
 
@@ -37,9 +37,9 @@
                  [sandbox-path-permissions '((read #rx#"racket-prefs.rktd"))])
     ((lambda () 
        (make-evaluator 'racket/base
-                       #:requires `(slideshow/pict
-                                    slideshow/flash
-                                    slideshow/code
+                       #:requires `(pict
+                                    pict/flash
+                                    pict/code
                                     ,autocomplete
                                     (planet schematics/random:1:0/random)
                                     (planet dherman/json:4:=0)
@@ -51,13 +51,13 @@
   (define res (ev str)) 
   (define out (get-output ev))
   (define err (get-error-output ev))  
-  (if (convertible? res)
-      ;; run 'convert' in the sandbox for safety reasons
-      (run-code ev `(bytes-append #"data:image/png;base64,"
-                         (base64-encode (convert ,res 'png-bytes) #"")))
-      (list (if (void? res) "" (format "~v" res))
-        (and (not (equal? out "")) out)
-        (and (not (equal? err "")) err))))
+  (cond [(ev `(convertible? ,res))
+         ;; run 'convert' in the sandbox for safety reasons
+         (run-code ev `(bytes-append #"data:image/png;base64,"
+                         (base64-encode (convert ,res 'png-bytes) #"")))]
+        [else      (list (if (void? res) "" (format "~v" res))
+                         (and (not (equal? out "")) out)
+                         (and (not (equal? err "")) err))]))
 
 (define (complete-code ev str)
   (define res (ev  `(jsexpr->json (namespace-completion ,str)))) 
@@ -237,7 +237,7 @@
  #:connection-close? #t
  #:quit? #f 
  #:listen-ip #f 
- #:port 8000
+ #:port 8080
  #:servlet-regexp #rx""
  #:extra-files-paths (list static)
  #:servlet-path "/"

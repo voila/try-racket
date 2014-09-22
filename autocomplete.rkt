@@ -1,8 +1,8 @@
 (module autocomplete racket
 
   (require readline/pread
-           slideshow/pict
-           slideshow/code
+           pict
+           pict/code
            (planet schematics/random:1:0/random)
            file/convertible
            net/base64)
