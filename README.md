@@ -12,7 +12,7 @@ It borrows a lot of code and content from [Try Clojure](http://www.tryclj.com/) 
     
     $ racket main.rkt
     
-Open http://localhost:8000 in your browser
+Open http://localhost:8080 in your browser
 
 ## License
 
